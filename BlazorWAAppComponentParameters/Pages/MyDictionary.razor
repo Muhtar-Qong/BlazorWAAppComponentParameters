@@ -1,0 +1,109 @@
+﻿@page "/mydictionary"
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+@inject HttpClient Http
+
+<h3>My English Dictionary Page</h3>
+
+<div class="form-group row mb-2">
+    <div class="col-md-6">
+        <input class="form-control"
+               type="text"
+               placeholder="Enter a word and get it's definitions"
+               value="@Word"
+               @oninput="OnValueChanged" />
+    </div>
+    <button class="btn btn-primary" @onclick="SearchWord">Search</button>
+</div>
+
+@if (dictionaryResponses == null)
+{
+    <p><em>No word to search...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Meanings</th>
+                <th>Examples</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < meanings.Count; i++)
+            {
+                <tr>
+                    <td>@meanings[i]</td>
+                    <td>@examples[i]</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+
+    private DictionaryResponse[] dictionaryResponses;
+    private List<string> meanings;
+    private List<string> examples;
+
+    [Parameter]
+    public string Word { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    private Task OnValueChanged(ChangeEventArgs e)
+    {
+        Word = e.Value.ToString();
+        return ValueChanged.InvokeAsync(Word);
+    }
+
+    private async Task SearchWord()
+    {
+        meanings = new List<string>();
+        examples = new List<string>();
+
+        dictionaryResponses =
+            await Http.GetFromJsonAsync<DictionaryResponse[]>(Configuration["FreeDictionaryAPIBaseUrl"] + Word);
+
+        if (dictionaryResponses != null)
+        {
+            foreach (Meaning mean in dictionaryResponses[0].Meanings)
+            {
+                foreach (Definitions def in mean.Definitions)
+                {
+                    meanings.Add(def.Definition);
+                    examples.Add(def.Example);
+                }
+            }
+        }
+    }
+
+    // DictionaryResponse object which is created based on the JSON response format
+    public class DictionaryResponse
+    {
+        public string Word { get; set; }
+        public List<Phonetic> Phonetics { get; set; }
+        public List<Meaning> Meanings { get; set; }
+    }
+
+    public class Phonetic
+    {
+        public string Text { get; set; }
+        public string Audio { get; set; }
+    }
+
+    public class Meaning
+    {
+        public string PartOfSpeech { get; set; }
+        public List<Definitions> Definitions { get; set; }
+    }
+
+    public class Definitions
+    {
+        public string Definition { get; set; }
+        public string Example { get; set; }
+    }
+
+}
