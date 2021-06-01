@@ -10,7 +10,7 @@
         <input class="form-control"
                type="text"
                placeholder="Enter a word and get it's definitions"
-               value="@Word"
+               @bind-value="@Word"
                @oninput="OnValueChanged" />
     </div>
     <button class="btn btn-primary" @onclick="SearchWord">Search</button>
